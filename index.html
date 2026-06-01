@@ -3,23 +3,29 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Alerta Procurado - VDM</title>
+
+<title>VDM - Alerta Procurado</title>
 
 <style>
+
+*{
+    box-sizing:border-box;
+}
+
 body{
-    font-family: Arial, sans-serif;
     background:#0d1117;
-    color:white;
+    color:#fff;
+    font-family:Arial, sans-serif;
     margin:0;
     padding:20px;
 }
 
 .container{
-    max-width:900px;
+    max-width:1000px;
     margin:auto;
     background:#161b22;
     padding:20px;
-    border-radius:10px;
+    border-radius:12px;
 }
 
 h1{
@@ -27,8 +33,13 @@ h1{
     color:#00d26a;
 }
 
-.form-group{
-    margin-bottom:15px;
+.row{
+    display:flex;
+    gap:10px;
+}
+
+.col{
+    flex:1;
 }
 
 label{
@@ -41,46 +52,47 @@ input, textarea{
     width:100%;
     padding:10px;
     border:none;
-    border-radius:5px;
+    border-radius:6px;
     background:#21262d;
     color:white;
 }
 
 textarea{
-    height:220px;
+    height:280px;
     resize:vertical;
 }
 
 button{
     background:#00d26a;
-    color:white;
     border:none;
-    padding:12px 20px;
-    border-radius:5px;
+    color:white;
+    padding:12px 18px;
+    border-radius:6px;
     cursor:pointer;
-    margin-right:5px;
     margin-top:10px;
+    margin-right:5px;
 }
 
 button:hover{
-    opacity:.9;
+    opacity:0.9;
 }
+
+#status{
+    margin-top:10px;
+    font-weight:bold;
+    color:#00d26a;
+}
+
+@media(max-width:700px){
 
 .row{
-    display:flex;
-    gap:10px;
+    flex-direction:column;
 }
 
-.row .form-group{
-    flex:1;
 }
 
-#enderecoEncontrado{
-    color:#00d26a;
-    font-weight:bold;
-    margin-top:10px;
-}
 </style>
+
 </head>
 <body>
 
@@ -89,82 +101,114 @@ button:hover{
 <h1>🚨 ALERTA - PROCURADO</h1>
 
 <div class="row">
-    <div class="form-group">
-        <label>Nome</label>
-        <input type="text" id="nome">
-    </div>
 
-    <div class="form-group">
-        <label>CPF</label>
-        <input type="text" id="cpf">
-    </div>
+<div class="col">
+<label>Nome</label>
+<input type="text" id="nome">
 </div>
+
+<div class="col">
+<label>CPF</label>
+<input type="text" id="cpf">
+</div>
+
+</div>
+
+<br>
 
 <div class="row">
-    <div class="form-group">
-        <label>Mãe</label>
-        <input type="text" id="mae">
-    </div>
 
-    <div class="form-group">
-        <label>Data Nascimento</label>
-        <input type="text" id="dn">
-    </div>
+<div class="col">
+<label>Mãe</label>
+<input type="text" id="mae">
 </div>
+
+<div class="col">
+<label>Data de Nascimento</label>
+<input type="text" id="dn" placeholder="08/01/1970">
+</div>
+
+</div>
+
+<br>
 
 <div class="row">
-    <div class="form-group">
-        <label>Confiança (%)</label>
-        <input type="text" id="confianca">
-    </div>
 
-    <div class="form-group">
-        <label>Data/Hora</label>
-        <input type="text" id="datahora">
-    </div>
+<div class="col">
+<label>Confiança (%)</label>
+<input type="text" id="confianca" placeholder="96,27">
 </div>
 
-<div class="form-group">
-    <label>Link Google Maps</label>
-    <input type="text" id="mapsLink">
+<div class="col">
+<label>Data / Hora</label>
+<input type="text" id="datahora">
 </div>
 
-<button onclick="buscarEndereco()">📍 Buscar Endereço</button>
-
-<div id="enderecoEncontrado"></div>
-
-<div class="form-group">
-    <label>Endereço</label>
-    <input type="text" id="endereco">
 </div>
 
-<button onclick="gerarTexto()">📝 Gerar Texto</button>
+<br>
 
-<div class="form-group">
-    <label>Texto Pronto</label>
-    <textarea id="resultado"></textarea>
-</div>
+<label>Link Google Maps / Street View</label>
+<input type="text" id="mapsLink"
+placeholder="Cole aqui o link do Google Maps">
 
-<button onclick="copiarTexto()">📋 Copiar</button>
+<button onclick="buscarEndereco()">
+📍 Buscar Endereço
+</button>
+
+<div id="status"></div>
+
+<br>
+
+<label>Endereço Encontrado</label>
+<input type="text" id="endereco">
+
+<br>
+
+<button onclick="gerarTexto()">
+📝 Gerar Texto
+</button>
+
+<button onclick="copiarTexto()">
+📋 Copiar
+</button>
+
+<br><br>
+
+<label>Texto Pronto para WhatsApp</label>
+
+<textarea id="resultado"></textarea>
 
 </div>
 
 <script>
 
-// SUA CHAVE GOOGLE API
-const API_KEY = "COLOQUE_SUA_CHAVE_AQUI";
-
 function extrairCoordenadas(url){
 
-    const regex = /(-?\d+\.\d+),(-?\d+\.\d+)/;
+    const regexes = [
 
-    const match = url.match(regex);
+        /@(-?\d+\.\d+),(-?\d+\.\d+)/,
 
-    if(match){
-        return {
-            lat: match[1],
-            lng: match[2]
-        };
+        /destination=(-?\d+\.\d+),(-?\d+\.\d+)/,
+
+        /q=(-?\d+\.\d+),(-?\d+\.\d+)/,
+
+        /ll=(-?\d+\.\d+),(-?\d+\.\d+)/,
+
+        /(-?\d+\.\d+),\s*(-?\d+\.\d+)/
+    ];
+
+    for(const regex of regexes){
+
+        const match = url.match(regex);
+
+        if(match){
+
+            return {
+                lat: match[1],
+                lon: match[2]
+            };
+        }
     }
 
     return null;
@@ -172,58 +216,88 @@ function extrairCoordenadas(url){
 
 async function buscarEndereco(){
 
-    const link = document.getElementById('mapsLink').value;
+    const status = document.getElementById("status");
+    status.innerHTML = "🔄 Consultando endereço...";
 
-    const coordenadas = extrairCoordenadas(link);
+    const link = document.getElementById("mapsLink").value;
 
-    if(!coordenadas){
-        alert("Não foi possível localizar coordenadas no link.");
+    const coords = extrairCoordenadas(link);
+
+    if(!coords){
+
+        status.innerHTML = "❌ Coordenadas não encontradas.";
+
         return;
     }
 
     try{
 
         const url =
-        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${coordenadas.lat},${coordenadas.lng}&key=${API_KEY}`;
+        `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${coords.lat}&lon=${coords.lon}`;
 
-        const resposta = await fetch(url);
+        const resposta = await fetch(url,{
+            headers:{
+                "Accept":"application/json"
+            }
+        });
 
         const dados = await resposta.json();
 
-        if(dados.results.length > 0){
+        if(dados.display_name){
 
-            const endereco = dados.results[0].formatted_address;
+            document.getElementById("endereco").value =
+            dados.display_name;
 
-            document.getElementById("endereco").value = endereco;
-
-            document.getElementById("enderecoEncontrado").innerHTML =
-                "✔ Endereço localizado: " + endereco;
+            status.innerHTML =
+            "✅ Endereço localizado com sucesso.";
 
         }else{
 
-            alert("Endereço não encontrado.");
+            status.innerHTML =
+            "❌ Endereço não encontrado.";
 
         }
 
-    }catch(e){
+    }
+    catch(erro){
 
-        alert("Erro ao consultar Google Maps.");
+        console.error(erro);
+
+        status.innerHTML =
+        "❌ Erro ao consultar endereço.";
 
     }
+
 }
 
 function gerarTexto(){
 
-    const nome = document.getElementById("nome").value;
-    const cpf = document.getElementById("cpf").value;
-    const mae = document.getElementById("mae").value;
-    const dn = document.getElementById("dn").value;
-    const endereco = document.getElementById("endereco").value;
-    const confianca = document.getElementById("confianca").value;
-    const datahora = document.getElementById("datahora").value;
-    const maps = document.getElementById("mapsLink").value;
+    const nome =
+    document.getElementById("nome").value;
+
+    const cpf =
+    document.getElementById("cpf").value;
+
+    const mae =
+    document.getElementById("mae").value;
+
+    const dn =
+    document.getElementById("dn").value;
+
+    const endereco =
+    document.getElementById("endereco").value;
+
+    const confianca =
+    document.getElementById("confianca").value;
+
+    const datahora =
+    document.getElementById("datahora").value;
+
+    const maps =
+    document.getElementById("mapsLink").value;
 
     const texto =
+
 `🚨 ALERTA - PROCURADO
 
 👤 ${nome}
@@ -240,20 +314,36 @@ DN: ${dn}
 
 COPOM VDM EQ. B`;
 
-    document.getElementById("resultado").value = texto;
+    document.getElementById("resultado").value =
+    texto;
+
 }
 
-function copiarTexto(){
+async function copiarTexto(){
 
-    const campo = document.getElementById("resultado");
+    const texto =
+    document.getElementById("resultado").value;
 
-    campo.select();
-    campo.setSelectionRange(0,99999);
+    await navigator.clipboard.writeText(texto);
 
-    navigator.clipboard.writeText(campo.value);
+    alert("Texto copiado para a área de transferência.");
 
-    alert("Texto copiado!");
 }
+
+window.onload = function(){
+
+    const agora = new Date();
+
+    const data =
+    agora.toLocaleDateString("pt-BR") +
+    " " +
+    agora.toLocaleTimeString("pt-BR");
+
+    document.getElementById("datahora").value =
+    data;
+
+}
+
 </script>
 
 </body>
