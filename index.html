@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Alerta Procurado - VDM</title>
+
+<style>
+body{
+    font-family: Arial, sans-serif;
+    background:#0d1117;
+    color:white;
+    margin:0;
+    padding:20px;
+}
+
+.container{
+    max-width:900px;
+    margin:auto;
+    background:#161b22;
+    padding:20px;
+    border-radius:10px;
+}
+
+h1{
+    text-align:center;
+    color:#00d26a;
+}
+
+.form-group{
+    margin-bottom:15px;
+}
+
+label{
+    display:block;
+    margin-bottom:5px;
+    font-weight:bold;
+}
+
+input, textarea{
+    width:100%;
+    padding:10px;
+    border:none;
+    border-radius:5px;
+    background:#21262d;
+    color:white;
+}
+
+textarea{
+    height:220px;
+    resize:vertical;
+}
+
+button{
+    background:#00d26a;
+    color:white;
+    border:none;
+    padding:12px 20px;
+    border-radius:5px;
+    cursor:pointer;
+    margin-right:5px;
+    margin-top:10px;
+}
+
+button:hover{
+    opacity:.9;
+}
+
+.row{
+    display:flex;
+    gap:10px;
+}
+
+.row .form-group{
+    flex:1;
+}
+
+#enderecoEncontrado{
+    color:#00d26a;
+    font-weight:bold;
+    margin-top:10px;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<h1>🚨 ALERTA - PROCURADO</h1>
+
+<div class="row">
+    <div class="form-group">
+        <label>Nome</label>
+        <input type="text" id="nome">
+    </div>
+
+    <div class="form-group">
+        <label>CPF</label>
+        <input type="text" id="cpf">
+    </div>
+</div>
+
+<div class="row">
+    <div class="form-group">
+        <label>Mãe</label>
+        <input type="text" id="mae">
+    </div>
+
+    <div class="form-group">
+        <label>Data Nascimento</label>
+        <input type="text" id="dn">
+    </div>
+</div>
+
+<div class="row">
+    <div class="form-group">
+        <label>Confiança (%)</label>
+        <input type="text" id="confianca">
+    </div>
+
+    <div class="form-group">
+        <label>Data/Hora</label>
+        <input type="text" id="datahora">
+    </div>
+</div>
+
+<div class="form-group">
+    <label>Link Google Maps</label>
+    <input type="text" id="mapsLink">
+</div>
+
+<button onclick="buscarEndereco()">📍 Buscar Endereço</button>
+
+<div id="enderecoEncontrado"></div>
+
+<div class="form-group">
+    <label>Endereço</label>
+    <input type="text" id="endereco">
+</div>
+
+<button onclick="gerarTexto()">📝 Gerar Texto</button>
+
+<div class="form-group">
+    <label>Texto Pronto</label>
+    <textarea id="resultado"></textarea>
+</div>
+
+<button onclick="copiarTexto()">📋 Copiar</button>
+
+</div>
+
+<script>
+
+// SUA CHAVE GOOGLE API
+const API_KEY = "COLOQUE_SUA_CHAVE_AQUI";
+
+function extrairCoordenadas(url){
+
+    const regex = /(-?\d+\.\d+),(-?\d+\.\d+)/;
+
+    const match = url.match(regex);
+
+    if(match){
+        return {
+            lat: match[1],
+            lng: match[2]
+        };
+    }
+
+    return null;
+}
+
+async function buscarEndereco(){
+
+    const link = document.getElementById('mapsLink').value;
+
+    const coordenadas = extrairCoordenadas(link);
+
+    if(!coordenadas){
+        alert("Não foi possível localizar coordenadas no link.");
+        return;
+    }
+
+    try{
+
+        const url =
+        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${coordenadas.lat},${coordenadas.lng}&key=${API_KEY}`;
+
+        const resposta = await fetch(url);
+
+        const dados = await resposta.json();
+
+        if(dados.results.length > 0){
+
+            const endereco = dados.results[0].formatted_address;
+
+            document.getElementById("endereco").value = endereco;
+
+            document.getElementById("enderecoEncontrado").innerHTML =
+                "✔ Endereço localizado: " + endereco;
+
+        }else{
+
+            alert("Endereço não encontrado.");
+
+        }
+
+    }catch(e){
+
+        alert("Erro ao consultar Google Maps.");
+
+    }
+}
+
+function gerarTexto(){
+
+    const nome = document.getElementById("nome").value;
+    const cpf = document.getElementById("cpf").value;
+    const mae = document.getElementById("mae").value;
+    const dn = document.getElementById("dn").value;
+    const endereco = document.getElementById("endereco").value;
+    const confianca = document.getElementById("confianca").value;
+    const datahora = document.getElementById("datahora").value;
+    const maps = document.getElementById("mapsLink").value;
+
+    const texto =
+`🚨 ALERTA - PROCURADO
+
+👤 ${nome}
+CPF: ${cpf}
+Mãe: ${mae}
+DN: ${dn}
+
+📍 ${endereco}
+
+🗺️ ${maps}
+
+📷 DSS | Confiança: ${confianca}%
+🕒 ${datahora}
+
+COPOM VDM EQ. B`;
+
+    document.getElementById("resultado").value = texto;
+}
+
+function copiarTexto(){
+
+    const campo = document.getElementById("resultado");
+
+    campo.select();
+    campo.setSelectionRange(0,99999);
+
+    navigator.clipboard.writeText(campo.value);
+
+    alert("Texto copiado!");
+}
+</script>
+
+</body>
+</html>
