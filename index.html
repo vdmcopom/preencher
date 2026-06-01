@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>VDM - Alerta Procurado</title>
+<title>VDM - Gerador de Alerta</title>
 
 <style>
 
@@ -16,8 +16,8 @@ body{
     margin:0;
     padding:20px;
     background:#0d1117;
-    color:white;
-    font-family:Arial,sans-serif;
+    color:#fff;
+    font-family:Arial,Helvetica,sans-serif;
 }
 
 .container{
@@ -25,7 +25,7 @@ body{
     margin:auto;
     background:#161b22;
     padding:20px;
-    border-radius:12px;
+    border-radius:10px;
 }
 
 h1{
@@ -48,7 +48,8 @@ label{
     font-weight:bold;
 }
 
-input, textarea{
+input,
+textarea{
     width:100%;
     padding:10px;
     border:none;
@@ -66,7 +67,7 @@ button{
     background:#00d26a;
     color:white;
     border:none;
-    padding:12px 18px;
+    padding:12px 20px;
     border-radius:6px;
     cursor:pointer;
     margin-top:10px;
@@ -85,9 +86,9 @@ button:hover{
 
 @media(max-width:700px){
 
-.row{
-    flex-direction:column;
-}
+    .row{
+        flex-direction:column;
+    }
 
 }
 
@@ -149,17 +150,17 @@ button:hover{
 
 <br>
 
-<label>Link Google Maps / Street View</label>
+<label>Link Google Maps</label>
 <input
 type="text"
 id="mapsLink"
-placeholder="Cole aqui o link do Google Maps">
+placeholder="Cole aqui o link completo do Google Maps">
 
 <div id="status"></div>
 
 <br>
 
-<label>Endereço Encontrado</label>
+<label>Endereço</label>
 <input type="text" id="endereco">
 
 <br>
@@ -174,7 +175,7 @@ placeholder="Cole aqui o link do Google Maps">
 
 <br><br>
 
-<label>Texto Pronto para WhatsApp</label>
+<label>Texto Pronto</label>
 
 <textarea id="resultado"></textarea>
 
@@ -182,7 +183,36 @@ placeholder="Cole aqui o link do Google Maps">
 
 <script>
 
-let coordenadasGlobais = null;
+let latitude = "";
+let longitude = "";
+
+function extrairEndereco(url){
+
+    try{
+
+        const match =
+        url.match(/maps\/place\/([^\/]+)/i);
+
+        if(!match) return "";
+
+        let endereco =
+        decodeURIComponent(match[1]);
+
+        endereco = endereco
+            .replace(/\+/g," ")
+            .replace(/,/g,", ")
+            .replace(/-/g," ")
+            .replace(/\s+/g," ")
+            .trim();
+
+        return endereco;
+
+    }catch{
+
+        return "";
+    }
+
+}
 
 function extrairCoordenadas(url){
 
@@ -190,13 +220,16 @@ function extrairCoordenadas(url){
 
         /@(-?\d+\.\d+),(-?\d+\.\d+)/,
 
+        /!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/,
+
         /destination=(-?\d+\.\d+),(-?\d+\.\d+)/,
 
         /q=(-?\d+\.\d+),(-?\d+\.\d+)/,
 
         /ll=(-?\d+\.\d+),(-?\d+\.\d+)/,
 
-        /(-?\d+\.\d+),\s*(-?\d+\.\d+)/
+        /(-?\d+\.\d+),(-?\d+\.\d+)/
+
     ];
 
     for(const regex of regexes){
@@ -205,81 +238,50 @@ function extrairCoordenadas(url){
 
         if(match){
 
-            return {
-                lat: match[1],
-                lon: match[2]
-            };
+            latitude = match[1];
+            longitude = match[2];
+
+            return true;
         }
+
     }
 
-    return null;
+    return false;
+
 }
 
-async function buscarEnderecoAutomatico(){
+function processarLink(){
 
     const link =
     document.getElementById("mapsLink").value.trim();
 
-    if(!link){
-        return;
-    }
+    if(!link) return;
 
-    const coords = extrairCoordenadas(link);
+    const endereco =
+    extrairEndereco(link);
 
-    if(!coords){
+    if(endereco){
 
-        document.getElementById("status").innerHTML =
-        "❌ Coordenadas não encontradas.";
-
-        return;
-    }
-
-    coordenadasGlobais = coords;
-
-    document.getElementById("status").innerHTML =
-    "🔄 Consultando endereço...";
-
-    try{
-
-        const resposta = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${coords.lat}&lon=${coords.lon}`
-        );
-
-        const dados = await resposta.json();
-
-        if(dados.display_name){
-
-            document.getElementById("endereco").value =
-            dados.display_name;
-
-            document.getElementById("status").innerHTML =
-            "✅ Endereço localizado.";
-
-        }else{
-
-            document.getElementById("status").innerHTML =
-            "❌ Endereço não encontrado.";
-
-        }
-
-    }
-    catch(erro){
-
-        console.error(erro);
+        document.getElementById("endereco").value =
+        endereco;
 
         document.getElementById("status").innerHTML =
-        "❌ Erro ao consultar endereço.";
+        "✅ Endereço identificado automaticamente.";
 
     }
+
+    extrairCoordenadas(link);
+
 }
 
-document.getElementById("mapsLink")
-.addEventListener("change", buscarEnderecoAutomatico);
+document
+.getElementById("mapsLink")
+.addEventListener("input",function(){
 
-document.getElementById("mapsLink")
-.addEventListener("paste", function(){
+    clearTimeout(window.delay);
 
-    setTimeout(buscarEnderecoAutomatico,500);
+    window.delay =
+    setTimeout(processarLink,500);
 
 });
 
@@ -306,16 +308,17 @@ function gerarTexto(){
     const datahora =
     document.getElementById("datahora").value;
 
-    let linkCurto = "";
+    let mapa = "";
 
-    if(coordenadasGlobais){
+    if(latitude && longitude){
 
-        linkCurto =
-        `https://maps.google.com/?q=${coordenadasGlobais.lat},${coordenadasGlobais.lon}`;
+        mapa =
+        `https://maps.google.com/?q=${latitude},${longitude}`;
 
     }
 
     const texto =
+
 `🚨 ALERTA - PROCURADO
 
 👤 ${nome}
@@ -325,7 +328,7 @@ DN: ${dn}
 
 📍 ${endereco}
 
-🗺️ ${linkCurto}
+🗺️ ${mapa}
 
 📷 DSS | Confiança: ${confianca}%
 🕒 ${datahora}
@@ -334,6 +337,7 @@ COPOM VDM EQ. B`;
 
     document.getElementById("resultado").value =
     texto;
+
 }
 
 async function copiarTexto(){
@@ -343,7 +347,8 @@ async function copiarTexto(){
 
     await navigator.clipboard.writeText(texto);
 
-    alert("Texto copiado com sucesso.");
+    alert("Texto copiado.");
+
 }
 
 window.onload = function(){
@@ -351,11 +356,11 @@ window.onload = function(){
     const agora = new Date();
 
     document.getElementById("datahora").value =
-    agora.toLocaleDateString("pt-BR") +
-    " " +
-    agora.toLocaleTimeString("pt-BR");
+    agora.toLocaleDateString("pt-BR")
+    + " "
+    + agora.toLocaleTimeString("pt-BR");
 
-};
+}
 
 </script>
 
