@@ -13,11 +13,11 @@
 }
 
 body{
-    background:#0d1117;
-    color:#fff;
-    font-family:Arial, sans-serif;
     margin:0;
     padding:20px;
+    background:#0d1117;
+    color:white;
+    font-family:Arial,sans-serif;
 }
 
 .container{
@@ -58,14 +58,14 @@ input, textarea{
 }
 
 textarea{
-    height:280px;
+    height:320px;
     resize:vertical;
 }
 
 button{
     background:#00d26a;
-    border:none;
     color:white;
+    border:none;
     padding:12px 18px;
     border-radius:6px;
     cursor:pointer;
@@ -74,7 +74,7 @@ button{
 }
 
 button:hover{
-    opacity:0.9;
+    opacity:.9;
 }
 
 #status{
@@ -94,6 +94,7 @@ button:hover{
 </style>
 
 </head>
+
 <body>
 
 <div class="container">
@@ -125,7 +126,7 @@ button:hover{
 
 <div class="col">
 <label>Data de Nascimento</label>
-<input type="text" id="dn" placeholder="08/01/1970">
+<input type="text" id="dn">
 </div>
 
 </div>
@@ -136,7 +137,7 @@ button:hover{
 
 <div class="col">
 <label>Confiança (%)</label>
-<input type="text" id="confianca" placeholder="96,27">
+<input type="text" id="confianca" value="96,00">
 </div>
 
 <div class="col">
@@ -149,12 +150,10 @@ button:hover{
 <br>
 
 <label>Link Google Maps / Street View</label>
-<input type="text" id="mapsLink"
+<input
+type="text"
+id="mapsLink"
 placeholder="Cole aqui o link do Google Maps">
-
-<button onclick="buscarEndereco()">
-📍 Buscar Endereço
-</button>
 
 <div id="status"></div>
 
@@ -182,6 +181,8 @@ placeholder="Cole aqui o link do Google Maps">
 </div>
 
 <script>
+
+let coordenadasGlobais = null;
 
 function extrairCoordenadas(url){
 
@@ -214,32 +215,35 @@ function extrairCoordenadas(url){
     return null;
 }
 
-async function buscarEndereco(){
+async function buscarEnderecoAutomatico(){
 
-    const status = document.getElementById("status");
-    status.innerHTML = "🔄 Consultando endereço...";
+    const link =
+    document.getElementById("mapsLink").value.trim();
 
-    const link = document.getElementById("mapsLink").value;
+    if(!link){
+        return;
+    }
 
     const coords = extrairCoordenadas(link);
 
     if(!coords){
 
-        status.innerHTML = "❌ Coordenadas não encontradas.";
+        document.getElementById("status").innerHTML =
+        "❌ Coordenadas não encontradas.";
 
         return;
     }
 
+    coordenadasGlobais = coords;
+
+    document.getElementById("status").innerHTML =
+    "🔄 Consultando endereço...";
+
     try{
 
-        const url =
-        `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${coords.lat}&lon=${coords.lon}`;
-
-        const resposta = await fetch(url,{
-            headers:{
-                "Accept":"application/json"
-            }
-        });
+        const resposta = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${coords.lat}&lon=${coords.lon}`
+        );
 
         const dados = await resposta.json();
 
@@ -248,12 +252,12 @@ async function buscarEndereco(){
             document.getElementById("endereco").value =
             dados.display_name;
 
-            status.innerHTML =
-            "✅ Endereço localizado com sucesso.";
+            document.getElementById("status").innerHTML =
+            "✅ Endereço localizado.";
 
         }else{
 
-            status.innerHTML =
+            document.getElementById("status").innerHTML =
             "❌ Endereço não encontrado.";
 
         }
@@ -263,12 +267,21 @@ async function buscarEndereco(){
 
         console.error(erro);
 
-        status.innerHTML =
+        document.getElementById("status").innerHTML =
         "❌ Erro ao consultar endereço.";
 
     }
-
 }
+
+document.getElementById("mapsLink")
+.addEventListener("change", buscarEnderecoAutomatico);
+
+document.getElementById("mapsLink")
+.addEventListener("paste", function(){
+
+    setTimeout(buscarEnderecoAutomatico,500);
+
+});
 
 function gerarTexto(){
 
@@ -293,11 +306,16 @@ function gerarTexto(){
     const datahora =
     document.getElementById("datahora").value;
 
-    const maps =
-    document.getElementById("mapsLink").value;
+    let linkCurto = "";
+
+    if(coordenadasGlobais){
+
+        linkCurto =
+        `https://maps.google.com/?q=${coordenadasGlobais.lat},${coordenadasGlobais.lon}`;
+
+    }
 
     const texto =
-
 `🚨 ALERTA - PROCURADO
 
 👤 ${nome}
@@ -307,7 +325,7 @@ DN: ${dn}
 
 📍 ${endereco}
 
-🗺️ ${maps}
+🗺️ ${linkCurto}
 
 📷 DSS | Confiança: ${confianca}%
 🕒 ${datahora}
@@ -316,7 +334,6 @@ COPOM VDM EQ. B`;
 
     document.getElementById("resultado").value =
     texto;
-
 }
 
 async function copiarTexto(){
@@ -326,23 +343,19 @@ async function copiarTexto(){
 
     await navigator.clipboard.writeText(texto);
 
-    alert("Texto copiado para a área de transferência.");
-
+    alert("Texto copiado com sucesso.");
 }
 
 window.onload = function(){
 
     const agora = new Date();
 
-    const data =
+    document.getElementById("datahora").value =
     agora.toLocaleDateString("pt-BR") +
     " " +
     agora.toLocaleTimeString("pt-BR");
 
-    document.getElementById("datahora").value =
-    data;
-
-}
+};
 
 </script>
 
